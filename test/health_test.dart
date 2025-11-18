@@ -53,20 +53,11 @@ void main() {
       expect(hdp.recordingMethod, RecordingMethod.manual);
 
       expect(hdp.value, isA<WorkoutHealthValue>());
-      expect(
-        (hdp.value as WorkoutHealthValue).workoutActivityType,
-        HealthWorkoutActivityType.AMERICAN_FOOTBALL,
-      );
+      expect((hdp.value as WorkoutHealthValue).workoutActivityType, HealthWorkoutActivityType.AMERICAN_FOOTBALL);
       expect((hdp.value as WorkoutHealthValue).totalEnergyBurned, 100);
-      expect(
-        (hdp.value as WorkoutHealthValue).totalEnergyBurnedUnit,
-        HealthDataUnit.KILOCALORIE,
-      );
+      expect((hdp.value as WorkoutHealthValue).totalEnergyBurnedUnit, HealthDataUnit.KILOCALORIE);
       expect((hdp.value as WorkoutHealthValue).totalDistance, 2000);
-      expect(
-        (hdp.value as WorkoutHealthValue).totalDistanceUnit,
-        HealthDataUnit.METER,
-      );
+      expect((hdp.value as WorkoutHealthValue).totalDistanceUnit, HealthDataUnit.METER);
 
       // debugPrint(toJsonString(hdp));
       expect(toJsonString(hdp), isA<String>());
@@ -148,21 +139,9 @@ void main() {
         "value": {
           "__type": "ElectrocardiogramHealthValue",
           "voltageValues": [
-            {
-              "__type": "ElectrocardiogramVoltageValue",
-              "voltage": 0.1,
-              "timeSinceSampleStart": 0.01,
-            },
-            {
-              "__type": "ElectrocardiogramVoltageValue",
-              "voltage": 0.2,
-              "timeSinceSampleStart": 0.02,
-            },
-            {
-              "__type": "ElectrocardiogramVoltageValue",
-              "voltage": 0.3,
-              "timeSinceSampleStart": 0.03,
-            },
+            {"__type": "ElectrocardiogramVoltageValue", "voltage": 0.1, "timeSinceSampleStart": 0.01},
+            {"__type": "ElectrocardiogramVoltageValue", "voltage": 0.2, "timeSinceSampleStart": 0.02},
+            {"__type": "ElectrocardiogramVoltageValue", "voltage": 0.3, "timeSinceSampleStart": 0.03},
           ],
         },
         "type": "ELECTROCARDIOGRAM",

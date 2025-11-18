@@ -7,8 +7,7 @@ class HealthValue extends Serializable {
 
   @override
   Function get fromJsonFunction => _$HealthValueFromJson;
-  factory HealthValue.fromJson(Map<String, dynamic> json) =>
-      FromJsonFactory().fromJson<HealthValue>(json);
+  factory HealthValue.fromJson(Map<String, dynamic> json) => FromJsonFactory().fromJson<HealthValue>(json);
   @override
   Map<String, dynamic> toJson() => _$HealthValueToJson(this);
 }
@@ -40,8 +39,7 @@ class NumericHealthValue extends HealthValue {
   Map<String, dynamic> toJson() => _$NumericHealthValueToJson(this);
 
   @override
-  bool operator ==(Object other) =>
-      other is NumericHealthValue && numericValue == other.numericValue;
+  bool operator ==(Object other) => other is NumericHealthValue && numericValue == other.numericValue;
 
   @override
   int get hashCode => numericValue.hashCode;
@@ -71,16 +69,11 @@ class AudiogramHealthValue extends HealthValue {
   });
 
   /// Create a [AudiogramHealthValue] based on a health data point from native data format.
-  factory AudiogramHealthValue.fromHealthDataPoint(dynamic dataPoint) =>
-      AudiogramHealthValue(
-        frequencies: List<num>.from(dataPoint['frequencies'] as List),
-        leftEarSensitivities: List<num>.from(
-          dataPoint['leftEarSensitivities'] as List,
-        ),
-        rightEarSensitivities: List<num>.from(
-          dataPoint['rightEarSensitivities'] as List,
-        ),
-      );
+  factory AudiogramHealthValue.fromHealthDataPoint(dynamic dataPoint) => AudiogramHealthValue(
+    frequencies: List<num>.from(dataPoint['frequencies'] as List),
+    leftEarSensitivities: List<num>.from(dataPoint['leftEarSensitivities'] as List),
+    rightEarSensitivities: List<num>.from(dataPoint['rightEarSensitivities'] as List),
+  );
 
   @override
   String toString() =>
@@ -103,8 +96,7 @@ class AudiogramHealthValue extends HealthValue {
       listEquals(rightEarSensitivities, other.rightEarSensitivities);
 
   @override
-  int get hashCode =>
-      Object.hash(frequencies, leftEarSensitivities, rightEarSensitivities);
+  int get hashCode => Object.hash(frequencies, leftEarSensitivities, rightEarSensitivities);
 }
 
 /// A [HealthValue] object for workouts
@@ -155,37 +147,24 @@ class WorkoutHealthValue extends HealthValue {
   });
 
   /// Create a [WorkoutHealthValue] based on a health data point from native data format.
-  factory WorkoutHealthValue.fromHealthDataPoint(dynamic dataPoint) =>
-      WorkoutHealthValue(
-        workoutActivityType: HealthWorkoutActivityType.values.firstWhere(
-          (element) => element.name == dataPoint['workoutActivityType'],
-          orElse: () => HealthWorkoutActivityType.OTHER,
-        ),
-        totalEnergyBurned: dataPoint['totalEnergyBurned'] != null
-            ? (dataPoint['totalEnergyBurned'] as num).toInt()
-            : null,
-        totalEnergyBurnedUnit: dataPoint['totalEnergyBurnedUnit'] != null
-            ? HealthDataUnit.values.firstWhere(
-                (element) => element.name == dataPoint['totalEnergyBurnedUnit'],
-              )
-            : null,
-        totalDistance: dataPoint['totalDistance'] != null
-            ? (dataPoint['totalDistance'] as num).toInt()
-            : null,
-        totalDistanceUnit: dataPoint['totalDistanceUnit'] != null
-            ? HealthDataUnit.values.firstWhere(
-                (element) => element.name == dataPoint['totalDistanceUnit'],
-              )
-            : null,
-        totalSteps: dataPoint['totalSteps'] != null
-            ? (dataPoint['totalSteps'] as num).toInt()
-            : null,
-        totalStepsUnit: dataPoint['totalStepsUnit'] != null
-            ? HealthDataUnit.values.firstWhere(
-                (element) => element.name == dataPoint['totalStepsUnit'],
-              )
-            : null,
-      );
+  factory WorkoutHealthValue.fromHealthDataPoint(dynamic dataPoint) => WorkoutHealthValue(
+    workoutActivityType: HealthWorkoutActivityType.values.firstWhere(
+      (element) => element.name == dataPoint['workoutActivityType'],
+      orElse: () => HealthWorkoutActivityType.OTHER,
+    ),
+    totalEnergyBurned: dataPoint['totalEnergyBurned'] != null ? (dataPoint['totalEnergyBurned'] as num).toInt() : null,
+    totalEnergyBurnedUnit: dataPoint['totalEnergyBurnedUnit'] != null
+        ? HealthDataUnit.values.firstWhere((element) => element.name == dataPoint['totalEnergyBurnedUnit'])
+        : null,
+    totalDistance: dataPoint['totalDistance'] != null ? (dataPoint['totalDistance'] as num).toInt() : null,
+    totalDistanceUnit: dataPoint['totalDistanceUnit'] != null
+        ? HealthDataUnit.values.firstWhere((element) => element.name == dataPoint['totalDistanceUnit'])
+        : null,
+    totalSteps: dataPoint['totalSteps'] != null ? (dataPoint['totalSteps'] as num).toInt() : null,
+    totalStepsUnit: dataPoint['totalStepsUnit'] != null
+        ? HealthDataUnit.values.firstWhere((element) => element.name == dataPoint['totalStepsUnit'])
+        : null,
+  );
 
   @override
   Function get fromJsonFunction => _$WorkoutHealthValueFromJson;
@@ -217,14 +196,14 @@ class WorkoutHealthValue extends HealthValue {
 
   @override
   int get hashCode => Object.hash(
-        workoutActivityType,
-        totalEnergyBurned,
-        totalEnergyBurnedUnit,
-        totalDistance,
-        totalDistanceUnit,
-        totalSteps,
-        totalStepsUnit,
-      );
+    workoutActivityType,
+    totalEnergyBurned,
+    totalEnergyBurnedUnit,
+    totalDistance,
+    totalDistanceUnit,
+    totalSteps,
+    totalStepsUnit,
+  );
 }
 
 /// A single location sample captured as part of a workout route.
@@ -262,30 +241,23 @@ class WorkoutRouteLocation extends Serializable {
     this.courseAccuracy,
   });
 
-  factory WorkoutRouteLocation.fromHealthDataPoint(
-    Map<String, dynamic> data,
-  ) =>
-      WorkoutRouteLocation(
-        latitude: (data['latitude'] as num).toDouble(),
-        longitude: (data['longitude'] as num).toDouble(),
-        timestamp: _timestampFrom(data),
-        altitude: _nullableDouble(data['altitude']),
-        horizontalAccuracy: _nullableDouble(data['horizontalAccuracy']),
-        verticalAccuracy: _nullableDouble(data['verticalAccuracy']),
-        speed: _nullableDouble(data['speed']),
-        course: _nullableDouble(data['course']),
-        speedAccuracy: _nullableDouble(data['speedAccuracy']),
-        courseAccuracy: _nullableDouble(data['courseAccuracy']),
-      );
+  factory WorkoutRouteLocation.fromHealthDataPoint(Map<String, dynamic> data) => WorkoutRouteLocation(
+    latitude: (data['latitude'] as num).toDouble(),
+    longitude: (data['longitude'] as num).toDouble(),
+    timestamp: _timestampFrom(data),
+    altitude: _nullableDouble(data['altitude']),
+    horizontalAccuracy: _nullableDouble(data['horizontalAccuracy']),
+    verticalAccuracy: _nullableDouble(data['verticalAccuracy']),
+    speed: _nullableDouble(data['speed']),
+    course: _nullableDouble(data['course']),
+    speedAccuracy: _nullableDouble(data['speedAccuracy']),
+    courseAccuracy: _nullableDouble(data['courseAccuracy']),
+  );
 
   static DateTime _timestampFrom(Map<String, dynamic> data) =>
-      DateTime.fromMillisecondsSinceEpoch(
-        (data['timestamp'] as num).toInt(),
-        isUtc: true,
-      ).toLocal();
+      DateTime.fromMillisecondsSinceEpoch((data['timestamp'] as num).toInt(), isUtc: true).toLocal();
 
-  static double? _nullableDouble(dynamic value) =>
-      value == null ? null : (value as num).toDouble();
+  static double? _nullableDouble(dynamic value) => value == null ? null : (value as num).toDouble();
 
   @override
   Function get fromJsonFunction => _$WorkoutRouteLocationFromJson;
@@ -310,17 +282,17 @@ class WorkoutRouteLocation extends Serializable {
 
   @override
   int get hashCode => Object.hash(
-        latitude,
-        longitude,
-        timestamp,
-        altitude,
-        horizontalAccuracy,
-        verticalAccuracy,
-        speed,
-        course,
-        speedAccuracy,
-        courseAccuracy,
-      );
+    latitude,
+    longitude,
+    timestamp,
+    altitude,
+    horizontalAccuracy,
+    verticalAccuracy,
+    speed,
+    course,
+    speedAccuracy,
+    courseAccuracy,
+  );
 }
 
 /// Route data captured for a workout session.
@@ -340,8 +312,7 @@ class WorkoutRouteHealthValue extends HealthValue {
         .toList();
 
     return WorkoutRouteHealthValue(
-      locations:
-          rawRoute.map(WorkoutRouteLocation.fromHealthDataPoint).toList(),
+      locations: rawRoute.map(WorkoutRouteLocation.fromHealthDataPoint).toList(),
       workoutUuid: dataPoint['workout_uuid'] as String?,
     );
   }
@@ -354,14 +325,11 @@ class WorkoutRouteHealthValue extends HealthValue {
   Map<String, dynamic> toJson() => _$WorkoutRouteHealthValueToJson(this);
 
   @override
-  String toString() =>
-      '$runtimeType - locations: ${locations.length} samples, workoutUuid: $workoutUuid';
+  String toString() => '$runtimeType - locations: ${locations.length} samples, workoutUuid: $workoutUuid';
 
   @override
   bool operator ==(Object other) =>
-      other is WorkoutRouteHealthValue &&
-      listEquals(locations, other.locations) &&
-      workoutUuid == other.workoutUuid;
+      other is WorkoutRouteHealthValue && listEquals(locations, other.locations) && workoutUuid == other.workoutUuid;
 
   @override
   int get hashCode => Object.hash(Object.hashAll(locations), workoutUuid);
@@ -403,22 +371,14 @@ class ElectrocardiogramHealthValue extends HealthValue {
   Map<String, dynamic> toJson() => _$ElectrocardiogramHealthValueToJson(this);
 
   /// Create a [ElectrocardiogramHealthValue] based on a health data point from native data format.
-  factory ElectrocardiogramHealthValue.fromHealthDataPoint(dynamic dataPoint) =>
-      ElectrocardiogramHealthValue(
-        voltageValues: (dataPoint['voltageValues'] as List)
-            .map(
-              (voltageValue) =>
-                  ElectrocardiogramVoltageValue.fromHealthDataPoint(
-                    voltageValue,
-                  ),
-            )
-            .toList(),
-        averageHeartRate: dataPoint['averageHeartRate'] as num?,
-        samplingFrequency: dataPoint['samplingFrequency'] as double?,
-        classification: ElectrocardiogramClassification.values.firstWhere(
-          (c) => c.value == dataPoint['classification'],
-        ),
-      );
+  factory ElectrocardiogramHealthValue.fromHealthDataPoint(dynamic dataPoint) => ElectrocardiogramHealthValue(
+    voltageValues: (dataPoint['voltageValues'] as List)
+        .map((voltageValue) => ElectrocardiogramVoltageValue.fromHealthDataPoint(voltageValue))
+        .toList(),
+    averageHeartRate: dataPoint['averageHeartRate'] as num?,
+    samplingFrequency: dataPoint['samplingFrequency'] as double?,
+    classification: ElectrocardiogramClassification.values.firstWhere((c) => c.value == dataPoint['classification']),
+  );
 
   @override
   bool operator ==(Object other) =>
@@ -429,12 +389,7 @@ class ElectrocardiogramHealthValue extends HealthValue {
       classification == other.classification;
 
   @override
-  int get hashCode => Object.hash(
-        voltageValues,
-        averageHeartRate,
-        samplingFrequency,
-        classification,
-      );
+  int get hashCode => Object.hash(voltageValues, averageHeartRate, samplingFrequency, classification);
 
   @override
   String toString() =>
@@ -450,18 +405,13 @@ class ElectrocardiogramVoltageValue extends HealthValue {
   /// Time since the start of the ECG.
   num timeSinceSampleStart;
 
-  ElectrocardiogramVoltageValue({
-    required this.voltage,
-    required this.timeSinceSampleStart,
-  });
+  ElectrocardiogramVoltageValue({required this.voltage, required this.timeSinceSampleStart});
 
   /// Create a [ElectrocardiogramVoltageValue] based on a health data point from native data format.
-  factory ElectrocardiogramVoltageValue.fromHealthDataPoint(
-    dynamic dataPoint,
-  ) => ElectrocardiogramVoltageValue(
-        voltage: dataPoint['voltage'] as num,
-        timeSinceSampleStart: dataPoint['timeSinceSampleStart'] as num,
-      );
+  factory ElectrocardiogramVoltageValue.fromHealthDataPoint(dynamic dataPoint) => ElectrocardiogramVoltageValue(
+    voltage: dataPoint['voltage'] as num,
+    timeSinceSampleStart: dataPoint['timeSinceSampleStart'] as num,
+  );
 
   @override
   Function get fromJsonFunction => _$ElectrocardiogramVoltageValueFromJson;
@@ -497,13 +447,10 @@ class InsulinDeliveryHealthValue extends HealthValue {
   factory InsulinDeliveryHealthValue.fromHealthDataPoint(dynamic dataPoint) {
     final units = dataPoint['value'] as num;
 
-    final metadata = dataPoint['metadata'] == null
-        ? null
-        : Map<String, dynamic>.from(dataPoint['metadata'] as Map);
-    final reasonIndex =
-        metadata == null || !metadata.containsKey('HKInsulinDeliveryReason')
-            ? 0
-            : metadata['HKInsulinDeliveryReason'] as double;
+    final metadata = dataPoint['metadata'] == null ? null : Map<String, dynamic>.from(dataPoint['metadata'] as Map);
+    final reasonIndex = metadata == null || !metadata.containsKey('HKInsulinDeliveryReason')
+        ? 0
+        : metadata['HKInsulinDeliveryReason'] as double;
     final reason = InsulinDeliveryReason.values[reasonIndex.toInt()];
 
     return InsulinDeliveryHealthValue(units: units.toDouble(), reason: reason);
@@ -518,9 +465,7 @@ class InsulinDeliveryHealthValue extends HealthValue {
 
   @override
   bool operator ==(Object other) =>
-      other is InsulinDeliveryHealthValue &&
-      units == other.units &&
-      reason == other.reason;
+      other is InsulinDeliveryHealthValue && units == other.units && reason == other.reason;
 
   @override
   int get hashCode => Object.hash(units, reason);
@@ -779,8 +724,7 @@ class NutritionHealthValue extends HealthValue {
 
   @override
   Function get fromJsonFunction => _$NutritionHealthValueFromJson;
-  factory NutritionHealthValue.fromJson(Map<String, dynamic> json) =>
-      _$NutritionHealthValueFromJson(json);
+  factory NutritionHealthValue.fromJson(Map<String, dynamic> json) => _$NutritionHealthValueFromJson(json);
   @override
   Map<String, dynamic> toJson() => _$NutritionHealthValueToJson(this);
 
@@ -897,50 +841,50 @@ class NutritionHealthValue extends HealthValue {
 
   @override
   int get hashCode => Object.hashAll([
-        protein,
-        calories,
-        fat,
-        name,
-        carbs,
-        caffeine,
-        vitaminA,
-        b1Thiamine,
-        b2Riboflavin,
-        b3Niacin,
-        b5PantothenicAcid,
-        b6Pyridoxine,
-        b7Biotin,
-        b9Folate,
-        b12Cobalamin,
-        vitaminC,
-        vitaminD,
-        vitaminE,
-        vitaminK,
-        calcium,
-        chloride,
-        cholesterol,
-        choline,
-        chromium,
-        copper,
-        fatUnsaturated,
-        fatMonounsaturated,
-        fatPolyunsaturated,
-        fatSaturated,
-        fatTransMonoenoic,
-        fiber,
-        iodine,
-        iron,
-        magnesium,
-        manganese,
-        molybdenum,
-        phosphorus,
-        potassium,
-        selenium,
-        sodium,
-        sugar,
-        water,
-        zinc,
-      ]);
+    protein,
+    calories,
+    fat,
+    name,
+    carbs,
+    caffeine,
+    vitaminA,
+    b1Thiamine,
+    b2Riboflavin,
+    b3Niacin,
+    b5PantothenicAcid,
+    b6Pyridoxine,
+    b7Biotin,
+    b9Folate,
+    b12Cobalamin,
+    vitaminC,
+    vitaminD,
+    vitaminE,
+    vitaminK,
+    calcium,
+    chloride,
+    cholesterol,
+    choline,
+    chromium,
+    copper,
+    fatUnsaturated,
+    fatMonounsaturated,
+    fatPolyunsaturated,
+    fatSaturated,
+    fatTransMonoenoic,
+    fiber,
+    iodine,
+    iron,
+    magnesium,
+    manganese,
+    molybdenum,
+    phosphorus,
+    potassium,
+    selenium,
+    sodium,
+    sugar,
+    water,
+    zinc,
+  ]);
 }
 
 enum MenstrualFlow {
@@ -1053,12 +997,7 @@ class MenstruationFlowHealthValue extends HealthValue {
   final bool? wasUserEntered;
   final DateTime dateTime;
 
-  MenstruationFlowHealthValue({
-    required this.flow,
-    required this.dateTime,
-    this.isStartOfCycle,
-    this.wasUserEntered,
-  });
+  MenstruationFlowHealthValue({required this.flow, required this.dateTime, this.isStartOfCycle, this.wasUserEntered});
 
   @override
   String toString() =>
@@ -1076,17 +1015,13 @@ class MenstruationFlowHealthValue extends HealthValue {
 
     return MenstruationFlowHealthValue(
       flow: menstrualFlow,
-      isStartOfCycle:
-          dataPoint['metadata']?.containsKey('HKMenstrualCycleStart') == true
-              ? dataPoint['metadata']['HKMenstrualCycleStart'] == 1.0
-              : null,
-      wasUserEntered:
-          dataPoint['metadata']?.containsKey('HKWasUserEntered') == true
-              ? dataPoint['metadata']['HKWasUserEntered'] == 1.0
-              : null,
-      dateTime: DateTime.fromMillisecondsSinceEpoch(
-        dataPoint['date_from'] as int,
-      ),
+      isStartOfCycle: dataPoint['metadata']?.containsKey('HKMenstrualCycleStart') == true
+          ? dataPoint['metadata']['HKMenstrualCycleStart'] == 1.0
+          : null,
+      wasUserEntered: dataPoint['metadata']?.containsKey('HKWasUserEntered') == true
+          ? dataPoint['metadata']['HKWasUserEntered'] == 1.0
+          : null,
+      dateTime: DateTime.fromMillisecondsSinceEpoch(dataPoint['date_from'] as int),
     );
   }
 
@@ -1111,6 +1046,5 @@ class MenstruationFlowHealthValue extends HealthValue {
   }
 
   @override
-  int get hashCode =>
-      Object.hash(flow, isStartOfCycle, wasUserEntered, dateTime);
+  int get hashCode => Object.hash(flow, isStartOfCycle, wasUserEntered, dateTime);
 }

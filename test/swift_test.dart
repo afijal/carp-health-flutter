@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:health/health.dart';
@@ -34,20 +32,8 @@ class MockMethodChannel extends Mock implements MethodChannel {
                   {
                     'uuid': 'test-uuid-1',
                     'value': 75.5,
-                    'date_from': DateTime(
-                      2024,
-                      9,
-                      24,
-                      12,
-                      0,
-                    ).millisecondsSinceEpoch,
-                    'date_to': DateTime(
-                      2024,
-                      9,
-                      24,
-                      12,
-                      0,
-                    ).millisecondsSinceEpoch,
+                    'date_from': DateTime(2024, 9, 24, 12, 0).millisecondsSinceEpoch,
+                    'date_to': DateTime(2024, 9, 24, 12, 0).millisecondsSinceEpoch,
                     'source_id': 'com.apple.Health',
                     'source_name': 'Health',
                     'recording_method': 2, // automatic
@@ -70,20 +56,8 @@ class MockMethodChannel extends Mock implements MethodChannel {
                     'totalEnergyBurnedUnit': 'KILOCALORIE',
                     'totalDistance': 5000.0,
                     'totalDistanceUnit': 'METER',
-                    'date_from': DateTime(
-                      2024,
-                      9,
-                      24,
-                      12,
-                      0,
-                    ).millisecondsSinceEpoch,
-                    'date_to': DateTime(
-                      2024,
-                      9,
-                      24,
-                      13,
-                      0,
-                    ).millisecondsSinceEpoch,
+                    'date_from': DateTime(2024, 9, 24, 12, 0).millisecondsSinceEpoch,
+                    'date_to': DateTime(2024, 9, 24, 13, 0).millisecondsSinceEpoch,
                     'source_id': 'com.apple.Health',
                     'source_name': 'Health',
                     'recording_method': 2,
@@ -104,13 +78,7 @@ class MockMethodChannel extends Mock implements MethodChannel {
                       {
                         'latitude': 37.334900,
                         'longitude': -122.009020,
-                        'timestamp': DateTime(
-                          2024,
-                          9,
-                          24,
-                          12,
-                          0,
-                        ).toUtc().millisecondsSinceEpoch,
+                        'timestamp': DateTime(2024, 9, 24, 12, 0).toUtc().millisecondsSinceEpoch,
                         'horizontalAccuracy': 5.0,
                         'verticalAccuracy': 8.0,
                         'speed': 1.4,
@@ -121,40 +89,19 @@ class MockMethodChannel extends Mock implements MethodChannel {
                       {
                         'latitude': 37.335280,
                         'longitude': -122.008430,
-                        'timestamp': DateTime(
-                          2024,
-                          9,
-                          24,
-                          12,
-                          2,
-                        ).toUtc().millisecondsSinceEpoch,
+                        'timestamp': DateTime(2024, 9, 24, 12, 2).toUtc().millisecondsSinceEpoch,
                         'horizontalAccuracy': 5.0,
                         'verticalAccuracy': 8.0,
                         'speed': 1.6,
                         'course': 120.0,
                       },
                     ],
-                    'date_from': DateTime(
-                      2024,
-                      9,
-                      24,
-                      12,
-                      0,
-                    ).millisecondsSinceEpoch,
-                    'date_to': DateTime(
-                      2024,
-                      9,
-                      24,
-                      12,
-                      30,
-                    ).millisecondsSinceEpoch,
+                    'date_from': DateTime(2024, 9, 24, 12, 0).millisecondsSinceEpoch,
+                    'date_to': DateTime(2024, 9, 24, 12, 30).millisecondsSinceEpoch,
                     'source_id': 'com.apple.Health',
                     'source_name': 'Health',
                     'recording_method': 2,
-                    'metadata': {
-                      'route_point_count': 2,
-                      'workout_uuid': 'test-workout-uuid',
-                    },
+                    'metadata': {'route_point_count': 2, 'workout_uuid': 'test-workout-uuid'},
                     'workout_uuid': 'test-workout-uuid',
                   },
                 ]
@@ -170,20 +117,8 @@ class MockMethodChannel extends Mock implements MethodChannel {
                     'calories': 500.0,
                     'carbs': 60.0,
                     'protein': 20.0,
-                    'date_from': DateTime(
-                      2024,
-                      9,
-                      24,
-                      13,
-                      0,
-                    ).millisecondsSinceEpoch,
-                    'date_to': DateTime(
-                      2024,
-                      9,
-                      24,
-                      13,
-                      30,
-                    ).millisecondsSinceEpoch,
+                    'date_from': DateTime(2024, 9, 24, 13, 0).millisecondsSinceEpoch,
+                    'date_to': DateTime(2024, 9, 24, 13, 30).millisecondsSinceEpoch,
                     'source_id': 'com.apple.Health',
                     'source_name': 'Health',
                     'recording_method': 2,
@@ -229,17 +164,15 @@ void main() {
 
   setUp(() {
     // Use the updated method to set the mock handler
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(
-          channel,
-          (call) => mockChannel.invokeMethod(call.method, call.arguments),
-        );
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+      channel,
+      (call) => mockChannel.invokeMethod(call.method, call.arguments),
+    );
   });
 
   tearDown(() {
     // Clear the mock handler
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(channel, null);
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel, null);
   });
 
   group('Sanitization via getHealthDataFromTypes', () {
@@ -285,10 +218,7 @@ void main() {
       });
       expect(hdp.value, isA<WorkoutHealthValue>());
       final workoutValue = hdp.value as WorkoutHealthValue;
-      expect(
-        workoutValue.workoutActivityType,
-        HealthWorkoutActivityType.RUNNING,
-      );
+      expect(workoutValue.workoutActivityType, HealthWorkoutActivityType.RUNNING);
       expect(workoutValue.totalEnergyBurned, 200);
       expect(workoutValue.totalDistance, 5000);
     });
@@ -305,12 +235,7 @@ void main() {
       expect(hdp.type, HealthDataType.NUTRITION);
       expect(hdp.metadata, {
         'HKFoodMeal': 'LUNCH',
-        'array': [
-          1,
-          'test',
-          false,
-          'DateTime.now()',
-        ], // 'DateTime.now()' should be filtered out
+        'array': [1, 'test', false, 'DateTime.now()'], // 'DateTime.now()' should be filtered out
       });
       expect(hdp.value, isA<NutritionHealthValue>());
       final nutritionValue = hdp.value as NutritionHealthValue;
@@ -329,10 +254,7 @@ void main() {
       expect(dataPoints.length, 1);
       final hdp = dataPoints.first;
       expect(hdp.type, HealthDataType.WORKOUT_ROUTE);
-      expect(hdp.metadata, {
-        'route_point_count': 2,
-        'workout_uuid': 'test-workout-uuid',
-      });
+      expect(hdp.metadata, {'route_point_count': 2, 'workout_uuid': 'test-workout-uuid'});
       expect(hdp.value, isA<WorkoutRouteHealthValue>());
 
       final routeValue = hdp.value as WorkoutRouteHealthValue;
@@ -378,19 +300,14 @@ void main() {
         ),
       ];
 
-      final success = await health.insertWorkoutRouteData(
-        builderId: builderId,
-        locations: locations,
-      );
+      final success = await health.insertWorkoutRouteData(builderId: builderId, locations: locations);
 
       expect(success, isTrue);
       expect(mockChannel.lastMethod, 'insertWorkoutRouteData');
       final args = Map<String, dynamic>.from(mockChannel.lastArguments as Map);
       expect(args['builderId'], builderId);
       expect(args['locations'], hasLength(1));
-      final serialized = Map<String, dynamic>.from(
-        (args['locations'] as List).first as Map,
-      );
+      final serialized = Map<String, dynamic>.from((args['locations'] as List).first as Map);
       expect(serialized['latitude'], 37.0);
       expect(serialized['longitude'], -122.0);
       expect(serialized['altitude'], 15);
