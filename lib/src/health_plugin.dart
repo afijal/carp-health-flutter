@@ -72,6 +72,19 @@ class Health {
   bool isDataTypeAvailable(HealthDataType dataType) =>
       Platform.isAndroid ? dataTypeKeysAndroid.contains(dataType) : dataTypeKeysIOS.contains(dataType);
 
+  /// Check if a given data type is available on this device.
+  /// Currently only needed for Android Skin Temperature support.
+  Future<void> _checkIfDataTypeAvailableOnDevice(HealthDataType dataType) async {
+    if (!Platform.isAndroid) return;
+
+    if (dataType == HealthDataType.SKIN_TEMPERATURE) {
+      final available = await isSkinTemperatureAvailable();
+      if (!available) {
+        throw HealthException(dataType, 'Not available on this Android device');
+      }
+    }
+  }
+
   /// Determines if the health data [types] have been granted with the specified
   /// access rights [permissions].
   ///
@@ -308,6 +321,26 @@ class Health {
     }
   }
 
+  /// Checks whether Skin Temperature is available on this Android device.
+  ///
+  /// Android only. Returns false on iOS or if an error occurs.
+  Future<bool> isSkinTemperatureAvailable() async {
+    if (Platform.isIOS) return false;
+
+    try {
+      final status = await getHealthConnectSdkStatus();
+      if (status != HealthConnectSdkStatus.sdkAvailable) {
+        return false;
+      }
+
+      final available = await _channel.invokeMethod<bool>('isSkinTemperatureAvailable');
+      return available ?? false;
+    } catch (e) {
+      debugPrint('$runtimeType - Exception in isSkinTemperatureAvailable(): $e');
+      return false;
+    }
+  }
+
   /// Requests permissions to access health data [types].
   ///
   /// Returns true if successful, false otherwise.
@@ -504,6 +537,7 @@ class Health {
     RecordingMethod recordingMethod = RecordingMethod.automatic,
   }) async {
     await _checkIfHealthConnectAvailableOnAndroid();
+    await _checkIfDataTypeAvailableOnDevice(type);
     if (Platform.isIOS && [RecordingMethod.active, RecordingMethod.unknown].contains(recordingMethod)) {
       throw ArgumentError("recordingMethod must be manual or automatic on iOS");
     }
@@ -1089,6 +1123,7 @@ class Health {
         : (await _deviceInfo.iosInfo).identifierForVendor;
 
     // If not implemented on platform, throw an exception
+    await _checkIfDataTypeAvailableOnDevice(type);
     if (!isDataTypeAvailable(type)) {
       throw HealthException(type, 'Not available on platform $platformType');
     }
@@ -1187,6 +1222,7 @@ class Health {
     }
 
     for (final type in normalizedTypes) {
+      await _checkIfDataTypeAvailableOnDevice(type);
       if (!isDataTypeAvailable(type)) {
         throw HealthException(type, 'Not available on platform $platformType');
       }
@@ -1246,6 +1282,7 @@ class Health {
         : (await _deviceInfo.iosInfo).identifierForVendor;
 
     // If not implemented on platform, throw an exception
+    await _checkIfDataTypeAvailableOnDevice(dataType);
     if (!isDataTypeAvailable(dataType)) {
       throw HealthException(dataType, 'Not available on platform $platformType');
     }
@@ -1271,6 +1308,7 @@ class Health {
         : (await _deviceInfo.iosInfo).identifierForVendor;
 
     // If not implemented on platform, throw an exception
+    await _checkIfDataTypeAvailableOnDevice(dataType);
     if (!isDataTypeAvailable(dataType)) {
       throw HealthException(dataType, 'Not available on platform $platformType');
     }
@@ -1293,6 +1331,7 @@ class Health {
 
     for (var type in dataTypes) {
       // If not implemented on platform, throw an exception
+      await _checkIfDataTypeAvailableOnDevice(type);
       if (!isDataTypeAvailable(type)) {
         throw HealthException(type, 'Not available on platform $platformType');
       }

@@ -161,6 +161,7 @@ const _$HealthDataTypeEnumMap = {
   HealthDataType.ELECTROCARDIOGRAM: 'ELECTROCARDIOGRAM',
   HealthDataType.TOTAL_CALORIES_BURNED: 'TOTAL_CALORIES_BURNED',
   HealthDataType.ACTIVITY_INTENSITY: 'ACTIVITY_INTENSITY',
+  HealthDataType.SKIN_TEMPERATURE: 'SKIN_TEMPERATURE',
 };
 
 const _$HealthDataUnitEnumMap = {
@@ -659,6 +660,37 @@ const _$ActivityIntensityLevelEnumMap = {
   ActivityIntensityLevel.moderate: 'moderate',
   ActivityIntensityLevel.vigorous: 'vigorous',
   ActivityIntensityLevel.unknown: 'unknown',
+};
+
+SkinTemperatureHealthValue _$SkinTemperatureHealthValueFromJson(
+  Map<String, dynamic> json,
+) => SkinTemperatureHealthValue(
+  temperatureDelta: (json['temperature_delta'] as num).toDouble(),
+  baseline: (json['baseline'] as num?)?.toDouble(),
+  measurementLocation:
+      $enumDecodeNullable(
+        _$SkinTemperatureMeasurementLocationEnumMap,
+        json['measurement_location'],
+      ) ??
+      SkinTemperatureMeasurementLocation.unknown,
+)..$type = json['__type'] as String?;
+
+Map<String, dynamic> _$SkinTemperatureHealthValueToJson(
+  SkinTemperatureHealthValue instance,
+) => <String, dynamic>{
+  '__type': ?instance.$type,
+  'temperature_delta': instance.temperatureDelta,
+  'baseline': ?instance.baseline,
+  'measurement_location':
+      _$SkinTemperatureMeasurementLocationEnumMap[instance
+          .measurementLocation]!,
+};
+
+const _$SkinTemperatureMeasurementLocationEnumMap = {
+  SkinTemperatureMeasurementLocation.unknown: 'unknown',
+  SkinTemperatureMeasurementLocation.finger: 'finger',
+  SkinTemperatureMeasurementLocation.toe: 'toe',
+  SkinTemperatureMeasurementLocation.wrist: 'wrist',
 };
 
 MenstruationFlowHealthValue _$MenstruationFlowHealthValueFromJson(

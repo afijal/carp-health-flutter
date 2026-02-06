@@ -33,6 +33,36 @@ class HealthDataWriter {
         self.workoutActivityTypeMap = workoutActivityTypeMap
     }
 
+    /// Returns a category value that is valid for the current iOS version.
+    /// Sleep "stages" (light/deep/rem) are iOS 16+ and need fallback on older versions.
+    private func resolvedCategoryValue(for type: String, rawValue: Int) -> Int {
+        switch type {
+        case HealthConstants.SLEEP_IN_BED:
+            return HKCategoryValueSleepAnalysis.inBed.rawValue
+        case HealthConstants.SLEEP_ASLEEP:
+            return HKCategoryValueSleepAnalysis.asleep.rawValue
+        case HealthConstants.SLEEP_AWAKE:
+            return HKCategoryValueSleepAnalysis.awake.rawValue
+        case HealthConstants.SLEEP_LIGHT:
+            if #available(iOS 16.0, *) {
+                return HKCategoryValueSleepAnalysis.asleepCore.rawValue
+            }
+            return HKCategoryValueSleepAnalysis.asleep.rawValue
+        case HealthConstants.SLEEP_DEEP:
+            if #available(iOS 16.0, *) {
+                return HKCategoryValueSleepAnalysis.asleepDeep.rawValue
+            }
+            return HKCategoryValueSleepAnalysis.asleep.rawValue
+        case HealthConstants.SLEEP_REM:
+            if #available(iOS 16.0, *) {
+                return HKCategoryValueSleepAnalysis.asleepREM.rawValue
+            }
+            return HKCategoryValueSleepAnalysis.asleep.rawValue
+        default:
+            return rawValue
+        }
+    }
+
     // MARK: - Workout Route Helpers
 
     private func storeWorkoutRouteBuilder(
@@ -172,19 +202,36 @@ class HealthDataWriter {
             HKMetadataKeyWasUserEntered: NSNumber(value: isManualEntry),
         ]
 
+        guard let sampleType = dataTypesDict[type] else {
+            print("Warning: Health data type '\(type)' not available on this iOS version.")
+            result(false)
+            return
+        }
+
         let sample: HKObject
 
-        if dataTypesDict[type]!.isKind(of: HKCategoryType.self) {
+        if let categoryType = sampleType as? HKCategoryType {
+            let safeValue = resolvedCategoryValue(for: type, rawValue: Int(value))
             sample = HKCategorySample(
-                type: dataTypesDict[type] as! HKCategoryType, value: Int(value), start: dateFrom,
+                type: categoryType, value: safeValue, start: dateFrom,
+                end: dateTo, metadata: metadata
+            )
+        } else if let quantityType = sampleType as? HKQuantityType {
+            guard let hkUnit = unitDict[unit] else {
+                print("Warning: Health data unit '\(unit)' not available on this iOS version.")
+                result(false)
+                return
+            }
+
+            let quantity = HKQuantity(unit: hkUnit, doubleValue: value)
+            sample = HKQuantitySample(
+                type: quantityType, quantity: quantity, start: dateFrom,
                 end: dateTo, metadata: metadata
             )
         } else {
-            let quantity = HKQuantity(unit: unitDict[unit]!, doubleValue: value)
-            sample = HKQuantitySample(
-                type: dataTypesDict[type] as! HKQuantityType, quantity: quantity, start: dateFrom,
-                end: dateTo, metadata: metadata
-            )
+            print("Warning: Unsupported HealthKit sample type for '\(type)'.")
+            result(false)
+            return
         }
 
         healthStore.save(

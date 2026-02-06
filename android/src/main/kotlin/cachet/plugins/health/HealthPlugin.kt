@@ -149,6 +149,8 @@ class HealthPlugin(private var channel: MethodChannel? = null) :
                     dataOperations.isHealthDataInBackgroundAuthorized(call, result)
             "requestHealthDataInBackgroundAuthorization" ->
                     requestHealthDataInBackgroundAuthorization(call, result)
+            "isSkinTemperatureAvailable" ->
+                    dataOperations.isSkinTemperatureAvailable(call, result)
 
             // Reading data
             "getData" -> dataReader.getData(call, result)

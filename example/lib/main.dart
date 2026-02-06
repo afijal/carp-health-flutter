@@ -51,6 +51,7 @@ enum AppState {
   DATA_NOT_ADDED,
   DATA_NOT_DELETED,
   STEPS_READY,
+  SKIN_TEMPERATURE_FEATURE_STATUS,
   HEALTH_CONNECT_STATUS,
   PERMISSIONS_REVOKING,
   PERMISSIONS_REVOKED,
@@ -84,11 +85,24 @@ class HealthAppState extends State<HealthApp> {
   DateTime? _lastChangesAt;
 
   // All types available depending on platform (iOS ot Android).
-  List<HealthDataType> get types => (Platform.isAndroid)
-      ? dataTypesAndroid
-      : (Platform.isIOS)
-      ? dataTypesIOS
-      : [];
+  List<HealthDataType> get types {
+    if (Platform.isAndroid) return dataTypesAndroid;
+    if (!Platform.isIOS) return [];
+
+    final iosTypes = List<HealthDataType>.from(dataTypesIOS);
+    if (!_isIOS16OrNewer) {
+      iosTypes.removeWhere(
+        (type) => const {
+          HealthDataType.WATER_TEMPERATURE,
+          HealthDataType.UNDERWATER_DEPTH,
+          HealthDataType.UV_INDEX,
+          HealthDataType.SLEEP_WRIST_TEMPERATURE,
+        }.contains(type),
+      );
+    }
+
+    return iosTypes;
+  }
 
   // // Or specify specific types
   // static final types = [
@@ -141,6 +155,13 @@ class HealthAppState extends State<HealthApp> {
     health.getHealthConnectSdkStatus();
 
     super.initState();
+  }
+
+  bool get _isIOS16OrNewer {
+    if (!Platform.isIOS) return false;
+    final match = RegExp(r'(\d+)').firstMatch(Platform.operatingSystemVersion);
+    final majorVersion = int.tryParse(match?.group(1) ?? '');
+    return (majorVersion ?? 0) >= 16;
   }
 
   /// Install Google Health Connect on this phone.
@@ -204,6 +225,27 @@ class HealthAppState extends State<HealthApp> {
         'Health Connect Status: ${status?.name.toUpperCase()}',
       );
       _state = AppState.HEALTH_CONNECT_STATUS;
+    });
+  }
+
+  /// Gets the Skin Temperature feature availability on Android.
+  Future<void> getSkinTemperatureFeatureStatus() async {
+    if (!Platform.isAndroid) {
+      setState(() {
+        _contentSkinTemperatureFeatureStatus = const Text(
+          'Skin Temperature feature is Android only.',
+        );
+        _state = AppState.SKIN_TEMPERATURE_FEATURE_STATUS;
+      });
+      return;
+    }
+
+    final available = await health.isSkinTemperatureAvailable();
+    setState(() {
+      _contentSkinTemperatureFeatureStatus = Text(
+        'Skin Temperature Feature: ${available ? "AVAILABLE" : "NOT AVAILABLE"}',
+      );
+      _state = AppState.SKIN_TEMPERATURE_FEATURE_STATUS;
     });
   }
 
@@ -465,12 +507,6 @@ class HealthAppState extends State<HealthApp> {
     // different types of sleep
     success &= await health.writeHealthData(
       value: 0.0,
-      type: HealthDataType.SLEEP_REM,
-      startTime: earlier,
-      endTime: now,
-    );
-    success &= await health.writeHealthData(
-      value: 0.0,
       type: HealthDataType.SLEEP_ASLEEP,
       startTime: earlier,
       endTime: now,
@@ -481,12 +517,22 @@ class HealthAppState extends State<HealthApp> {
       startTime: earlier,
       endTime: now,
     );
-    success &= await health.writeHealthData(
-      value: 0.0,
-      type: HealthDataType.SLEEP_DEEP,
-      startTime: earlier,
-      endTime: now,
-    );
+    if (_isIOS16OrNewer || Platform.isAndroid) {
+      success &= await health.writeHealthData(
+        value: 0.0,
+        type: HealthDataType.SLEEP_REM,
+        startTime: earlier,
+        endTime: now,
+      );
+      success &= await health.writeHealthData(
+        value: 0.0,
+        type: HealthDataType.SLEEP_DEEP,
+        startTime: earlier,
+        endTime: now,
+      );
+    } else if (Platform.isIOS) {
+      debugPrint('Skipping SLEEP_REM and SLEEP_DEEP writes on iOS < 16.');
+    }
     success &= await health.writeHealthData(
       value: 22,
       type: HealthDataType.LEAN_BODY_MASS,
@@ -598,6 +644,8 @@ class HealthAppState extends State<HealthApp> {
       endTime: now,
     );
 
+    writeSkinTemperatureSample();
+
     if (Platform.isIOS) {
       success &= await health.writeInsulinDelivery(
         5,
@@ -632,11 +680,10 @@ class HealthAppState extends State<HealthApp> {
         startTime: earlier,
         endTime: now,
       );
-
     }
 
-    // Available on iOS or iOS 16.0+ only
-    if (Platform.isIOS) {
+    // Available on iOS 16.0+ only
+    if (_isIOS16OrNewer) {
       success &= await health.writeHealthData(
         value: 22,
         type: HealthDataType.WATER_TEMPERATURE,
@@ -659,8 +706,14 @@ class HealthAppState extends State<HealthApp> {
         endTime: now,
         recordingMethod: RecordingMethod.manual,
       );
+    } else if (Platform.isIOS) {
+      debugPrint(
+        'Skipping WATER_TEMPERATURE, UNDERWATER_DEPTH, and UV_INDEX writes on iOS < 16.',
+      );
+    }
 
-       // Mindfulness value should be counted based on start and end time
+    if (Platform.isIOS) {
+      // Mindfulness value should be counted based on start and end time
       success &= await health.writeHealthData(
         value: 10,
         type: HealthDataType.MINDFULNESS,
@@ -673,6 +726,64 @@ class HealthAppState extends State<HealthApp> {
     setState(() {
       _state = success ? AppState.DATA_ADDED : AppState.DATA_NOT_ADDED;
     });
+  }
+
+  Future<bool> _ensureSkinTemperaturePermissions({
+    required HealthDataAccess access,
+  }) async {
+    if (!Platform.isAndroid) return false;
+
+    final available = await health.isSkinTemperatureAvailable();
+    if (!available) {
+      setState(() {
+        _contentSkinTemperatureFeatureStatus = const Text(
+          'Skin Temperature Feature: NOT AVAILABLE',
+        );
+        _state = AppState.SKIN_TEMPERATURE_FEATURE_STATUS;
+      });
+      return false;
+    }
+
+    bool? hasPermissions = await health.hasPermissions(
+      [HealthDataType.SKIN_TEMPERATURE],
+      permissions: [access],
+    );
+
+    if (hasPermissions != true) {
+      hasPermissions = await health.requestAuthorization(
+        [HealthDataType.SKIN_TEMPERATURE],
+        permissions: [access],
+      );
+    }
+
+    return hasPermissions == true;
+  }
+
+  /// Write a sample skin temperature record (Android only).
+  Future<void> writeSkinTemperatureSample() async {
+    if (!Platform.isAndroid) {
+      setState(() => _state = AppState.DATA_NOT_ADDED);
+      return;
+    }
+
+    final authorized = await _ensureSkinTemperaturePermissions(
+      access: HealthDataAccess.READ_WRITE,
+    );
+    if (!authorized) {
+      setState(() => _state = AppState.DATA_NOT_ADDED);
+      return;
+    }
+
+    final now = DateTime.now();
+    final earlier = now.subtract(const Duration(minutes: 20));
+    await health.writeHealthData(
+      value: 33.6,
+      type: HealthDataType.SKIN_TEMPERATURE,
+      startTime: earlier,
+      endTime: now,
+      recordingMethod: RecordingMethod.manual,
+    );
+
   }
 
   /// Writes a sample workout route and associates it with a workout.
@@ -1026,6 +1137,17 @@ class HealthAppState extends State<HealthApp> {
                           style: TextStyle(color: Colors.white),
                         ),
                       ),
+                      if (Platform.isAndroid)
+                        TextButton(
+                          onPressed: getSkinTemperatureFeatureStatus,
+                          style: const ButtonStyle(
+                            backgroundColor: WidgetStatePropertyAll(Colors.blue),
+                          ),
+                          child: const Text(
+                            "Check Skin Temp Feature",
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
                       TextButton(
                         onPressed: fetchData,
                         style: const ButtonStyle(
@@ -1341,6 +1463,10 @@ class HealthAppState extends State<HealthApp> {
     'No status, click getHealthConnectSdkStatus to get the status.',
   );
 
+  Widget _contentSkinTemperatureFeatureStatus = const Text(
+    'No status, click "Check Skin Temp Feature" to get the status.',
+  );
+
   final Widget _dataAdded = const Text('Data points inserted successfully.');
 
   final Widget _dataDeleted = const Text('Data points deleted successfully.');
@@ -1426,6 +1552,8 @@ class HealthAppState extends State<HealthApp> {
     AppState.DATA_NOT_DELETED => _dataNotDeleted,
     AppState.STEPS_READY => _stepsFetched,
     AppState.HEALTH_CONNECT_STATUS => _contentHealthConnectStatus,
+    AppState.SKIN_TEMPERATURE_FEATURE_STATUS =>
+      _contentSkinTemperatureFeatureStatus,
     AppState.PERMISSIONS_REVOKING => _permissionsRevoking,
     AppState.PERMISSIONS_REVOKED => _permissionsRevoked,
     AppState.PERMISSIONS_NOT_REVOKED => _permissionsNotRevoked,

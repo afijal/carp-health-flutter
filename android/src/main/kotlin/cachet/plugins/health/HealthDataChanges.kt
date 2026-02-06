@@ -157,6 +157,7 @@ class HealthDataChanges(
         is ActiveCaloriesBurnedRecord -> listOf(HealthConstants.ACTIVE_ENERGY_BURNED)
         is HeartRateRecord -> listOf(HealthConstants.HEART_RATE)
         is BodyTemperatureRecord -> listOf(HealthConstants.BODY_TEMPERATURE)
+        is SkinTemperatureRecord -> listOf(HealthConstants.SKIN_TEMPERATURE)
         is BodyWaterMassRecord -> listOf(HealthConstants.BODY_WATER_MASS)
         is BloodPressureRecord ->
             listOf(
