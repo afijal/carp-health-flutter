@@ -34,6 +34,25 @@ class HealthDataReader {
         self.characteristicsTypesDict = characteristicsTypesDict
     }
 
+    /// Resolves the workout activity type key for a workout, using indoor metadata when available.
+    /// On iOS, treadmill running is stored as .running with HKMetadataKeyIndoorWorkout = true.
+    /// We must not use the map's first(where:) for .running/.walking because both RUNNING and
+    /// RUNNING_TREADMILL map to .running; iteration order would make outdoor runs show as TREADMILL.
+    private func workoutActivityTypeKey(for sample: HKWorkout) -> String? {
+        let isIndoor = (sample.metadata?[HKMetadataKeyIndoorWorkout] as? Bool == true)
+            || (sample.metadata?[HKMetadataKeyIndoorWorkout] as? NSNumber)?.boolValue == true
+        switch sample.workoutActivityType {
+        case .running:
+            return isIndoor ? "RUNNING_TREADMILL" : "RUNNING"
+        case .walking:
+            return isIndoor ? "WALKING_TREADMILL" : "WALKING"
+        default:
+            return workoutActivityTypeMap.first(where: {
+                $0.value == sample.workoutActivityType
+            })?.key
+        }
+    }
+
     /// Gets health data
     /// - Parameters:
     ///   - call: Flutter method call
@@ -252,9 +271,7 @@ class HealthDataReader {
                 let dictionaries = workoutSamples.map { sample -> NSDictionary in
                     return [
                         "uuid": "\(sample.uuid)",
-                        "workoutActivityType": self.workoutActivityTypeMap.first(where: {
-                            $0.value == sample.workoutActivityType
-                        })?.key,
+                        "workoutActivityType": self.workoutActivityTypeKey(for: sample),
                         "totalEnergyBurned": sample.totalEnergyBurned?.doubleValue(
                             for: HKUnit.kilocalorie()
                         ),
@@ -541,9 +558,7 @@ class HealthDataReader {
                 let dictionaries = workoutSamples.map { sample -> NSDictionary in
                     return [
                         "uuid": "\(sample.uuid)",
-                        "workoutActivityType": self.workoutActivityTypeMap.first(where: {
-                            $0.value == sample.workoutActivityType
-                        })?.key,
+                        "workoutActivityType": self.workoutActivityTypeKey(for: sample),
                         "totalEnergyBurned": sample.totalEnergyBurned?.doubleValue(
                             for: HKUnit.kilocalorie()
                         ),
