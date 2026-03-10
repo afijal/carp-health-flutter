@@ -34,6 +34,40 @@ class HealthDataReader {
         self.characteristicsTypesDict = characteristicsTypesDict
     }
 
+    /// Returns the total distance for a workout in the given unit.
+    /// Falls back to `statistics(for:)` when the deprecated `totalDistance` property is nil (iOS 16+).
+    private func workoutTotalDistance(_ sample: HKWorkout, unit: HKUnit) -> Double? {
+        if let legacy = sample.totalDistance {
+            return legacy.doubleValue(for: unit)
+        }
+        let distanceTypes: [HKQuantityType] = [
+            HKQuantityType.quantityType(forIdentifier: .distanceCycling)!,
+            HKQuantityType.quantityType(forIdentifier: .distanceWalkingRunning)!,
+            HKQuantityType.quantityType(forIdentifier: .distanceSwimming)!,
+        ]
+        for quantityType in distanceTypes {
+            if let stat = sample.statistics(for: quantityType),
+               let sum = stat.sumQuantity() {
+                return sum.doubleValue(for: unit)
+            }
+        }
+        return nil
+    }
+
+    /// Returns the total energy burned for a workout in the given unit.
+    /// Falls back to `statistics(for:)` when the deprecated `totalEnergyBurned` property is nil (iOS 16+).
+    private func workoutTotalEnergyBurned(_ sample: HKWorkout, unit: HKUnit) -> Double? {
+        if let legacy = sample.totalEnergyBurned {
+            return legacy.doubleValue(for: unit)
+        }
+        let energyType = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned)!
+        if let stat = sample.statistics(for: energyType),
+           let sum = stat.sumQuantity() {
+            return sum.doubleValue(for: unit)
+        }
+        return nil
+    }
+
     /// Resolves the workout activity type key for a workout, using indoor metadata when available.
     /// On iOS, treadmill running is stored as .running with HKMetadataKeyIndoorWorkout = true.
     /// We must not use the map's first(where:) for .running/.walking because both RUNNING and
@@ -46,6 +80,8 @@ class HealthDataReader {
             return isIndoor ? "RUNNING_TREADMILL" : "RUNNING"
         case .walking:
             return isIndoor ? "WALKING_TREADMILL" : "WALKING"
+        case .cycling:
+            return isIndoor ? "BIKING_STATIONARY" : "BIKING"
         default:
             return workoutActivityTypeMap.first(where: {
                 $0.value == sample.workoutActivityType
@@ -269,14 +305,14 @@ class HealthDataReader {
                 }
             } else if let workoutSamples = samples as? [HKWorkout] {
                 let dictionaries = workoutSamples.map { sample -> NSDictionary in
+                    let distance = self.workoutTotalDistance(sample, unit: HKUnit.meter())
+                    let energy = self.workoutTotalEnergyBurned(sample, unit: HKUnit.kilocalorie())
                     return [
                         "uuid": "\(sample.uuid)",
                         "workoutActivityType": self.workoutActivityTypeKey(for: sample),
-                        "totalEnergyBurned": sample.totalEnergyBurned?.doubleValue(
-                            for: HKUnit.kilocalorie()
-                        ),
+                        "totalEnergyBurned": energy,
                         "totalEnergyBurnedUnit": "KILOCALORIE",
-                        "totalDistance": sample.totalDistance?.doubleValue(for: HKUnit.meter()),
+                        "totalDistance": distance,
                         "totalDistanceUnit": "METER",
                         "date_from": Int(sample.startDate.timeIntervalSince1970 * 1000),
                         "date_to": Int(sample.endDate.timeIntervalSince1970 * 1000),
@@ -287,10 +323,10 @@ class HealthDataReader {
                             ? HealthConstants.RecordingMethod.manual.rawValue
                             : HealthConstants.RecordingMethod.automatic.rawValue,
                         "workout_type": HKWorkoutActivityType.toString(sample.workoutActivityType),
-                        "total_distance": sample.totalDistance != nil
-                            ? Int(sample.totalDistance!.doubleValue(for: HKUnit.meter())) : 0,
-                        "total_energy_burned": sample.totalEnergyBurned != nil
-                            ? Int(sample.totalEnergyBurned!.doubleValue(for: HKUnit.kilocalorie()))
+                        "total_distance": distance != nil
+                            ? Int(distance!) : 0,
+                        "total_energy_burned": energy != nil
+                            ? Int(energy!)
                             : 0,
                     ]
                 }
@@ -556,14 +592,14 @@ class HealthDataReader {
                 }
             } else if let workoutSamples = samples as? [HKWorkout] {
                 let dictionaries = workoutSamples.map { sample -> NSDictionary in
+                    let distance = self.workoutTotalDistance(sample, unit: HKUnit.meter())
+                    let energy = self.workoutTotalEnergyBurned(sample, unit: HKUnit.kilocalorie())
                     return [
                         "uuid": "\(sample.uuid)",
                         "workoutActivityType": self.workoutActivityTypeKey(for: sample),
-                        "totalEnergyBurned": sample.totalEnergyBurned?.doubleValue(
-                            for: HKUnit.kilocalorie()
-                        ),
+                        "totalEnergyBurned": energy,
                         "totalEnergyBurnedUnit": "KILOCALORIE",
-                        "totalDistance": sample.totalDistance?.doubleValue(for: HKUnit.meter()),
+                        "totalDistance": distance,
                         "totalDistanceUnit": "METER",
                         "date_from": Int(sample.startDate.timeIntervalSince1970 * 1000),
                         "date_to": Int(sample.endDate.timeIntervalSince1970 * 1000),
@@ -574,10 +610,10 @@ class HealthDataReader {
                             ? HealthConstants.RecordingMethod.manual.rawValue
                             : HealthConstants.RecordingMethod.automatic.rawValue,
                         "workout_type": HKWorkoutActivityType.toString(sample.workoutActivityType),
-                        "total_distance": sample.totalDistance != nil
-                            ? Int(sample.totalDistance!.doubleValue(for: HKUnit.meter())) : 0,
-                        "total_energy_burned": sample.totalEnergyBurned != nil
-                            ? Int(sample.totalEnergyBurned!.doubleValue(for: HKUnit.kilocalorie()))
+                        "total_distance": distance != nil
+                            ? Int(distance!) : 0,
+                        "total_energy_burned": energy != nil
+                            ? Int(energy!)
                             : 0,
                     ]
                 }

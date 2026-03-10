@@ -585,6 +585,7 @@ public class SwiftHealthPlugin: NSObject, FlutterPlugin {
         workoutActivityTypeMap["WHEELCHAIR_WALK_PACE"] = .wheelchairWalkPace
         workoutActivityTypeMap["WHEELCHAIR_RUN_PACE"] = .wheelchairRunPace
         workoutActivityTypeMap["BIKING"] = .cycling
+        workoutActivityTypeMap["BIKING_STATIONARY"] = .cycling // Indoor cycling; iOS stores as .cycling + HKMetadataKeyIndoorWorkout
         workoutActivityTypeMap["HAND_CYCLING"] = .handCycling
         workoutActivityTypeMap["CORE_TRAINING"] = .coreTraining
         workoutActivityTypeMap["ELLIPTICAL"] = .elliptical
