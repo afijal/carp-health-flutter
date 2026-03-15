@@ -45,10 +45,12 @@ class HealthDataReader {
             HKQuantityType.quantityType(forIdentifier: .distanceWalkingRunning)!,
             HKQuantityType.quantityType(forIdentifier: .distanceSwimming)!,
         ]
-        for quantityType in distanceTypes {
-            if let stat = sample.statistics(for: quantityType),
-               let sum = stat.sumQuantity() {
-                return sum.doubleValue(for: unit)
+        if #available(iOS 16.0, *) {
+            for quantityType in distanceTypes {
+                if let stat = sample.statistics(for: quantityType),
+                   let sum = stat.sumQuantity() {
+                    return sum.doubleValue(for: unit)
+                }
             }
         }
         return nil
@@ -60,10 +62,12 @@ class HealthDataReader {
         if let legacy = sample.totalEnergyBurned {
             return legacy.doubleValue(for: unit)
         }
-        let energyType = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned)!
-        if let stat = sample.statistics(for: energyType),
-           let sum = stat.sumQuantity() {
-            return sum.doubleValue(for: unit)
+        if #available(iOS 16.0, *) {
+            let energyType = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned)!
+            if let stat = sample.statistics(for: energyType),
+               let sum = stat.sumQuantity() {
+                return sum.doubleValue(for: unit)
+            }
         }
         return nil
     }
