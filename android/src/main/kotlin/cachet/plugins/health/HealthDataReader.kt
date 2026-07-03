@@ -154,28 +154,6 @@ class HealthDataReader(
         }
     }
 
-    companion object {
-        const val ERROR_RATE_LIMITED = "RATE_LIMITED"
-        const val ERROR_PERMISSION_DENIED = "PERMISSION_DENIED"
-        const val ERROR_READ = "READ_ERROR"
-
-        /**
-         * Classifies a Health Connect read failure so Flutter can react
-         * (back off and resume on rate limits, re-prompt on revoked
-         * permissions) instead of treating every failure the same way.
-         * The message check runs first because Health Connect wraps quota
-         * errors in varying exception classes.
-         */
-        fun errorCodeFor(e: Exception): String {
-            val message = e.message ?: ""
-            return when {
-                message.contains("rate limit", ignoreCase = true) ||
-                    message.contains("quota", ignoreCase = true) -> ERROR_RATE_LIMITED
-                e is SecurityException -> ERROR_PERMISSION_DENIED
-                else -> ERROR_READ
-            }
-        }
-    }
 
     /**
      * Retrieves single health data point by given UUID and type.
@@ -771,5 +749,26 @@ class HealthDataReader(
         private const val SLEEP_OUT_OF_BED = "SLEEP_OUT_OF_BED"
         private const val SLEEP_UNKNOWN = "SLEEP_UNKNOWN"
         private const val WORKOUT = "WORKOUT"
+
+        const val ERROR_RATE_LIMITED = "RATE_LIMITED"
+        const val ERROR_PERMISSION_DENIED = "PERMISSION_DENIED"
+        const val ERROR_READ = "READ_ERROR"
+
+        /**
+         * Classifies a Health Connect read failure so Flutter can react
+         * (back off and resume on rate limits, re-prompt on revoked
+         * permissions) instead of treating every failure the same way.
+         * The message check runs first because Health Connect wraps quota
+         * errors in varying exception classes.
+         */
+        fun errorCodeFor(e: Exception): String {
+            val message = e.message ?: ""
+            return when {
+                message.contains("rate limit", ignoreCase = true) ||
+                    message.contains("quota", ignoreCase = true) -> ERROR_RATE_LIMITED
+                e is SecurityException -> ERROR_PERMISSION_DENIED
+                else -> ERROR_READ
+            }
+        }
     }
 }
