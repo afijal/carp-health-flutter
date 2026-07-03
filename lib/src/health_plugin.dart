@@ -1144,6 +1144,7 @@ class Health {
     required DateTime startTime,
     required DateTime endTime,
     List<RecordingMethod> recordingMethodsToFilter = const [],
+    bool includeWorkoutDetails = true,
   }) async {
     await _checkIfHealthConnectAvailableOnAndroid();
     List<HealthDataPoint> dataPoints = [];
@@ -1155,6 +1156,7 @@ class Health {
         type,
         recordingMethodsToFilter,
         dataUnit: preferredUnits?[type],
+        includeWorkoutDetails: includeWorkoutDetails,
       );
       dataPoints.addAll(result);
     }
@@ -1275,6 +1277,7 @@ class Health {
     HealthDataType dataType,
     List<RecordingMethod> recordingMethodsToFilter, {
     HealthDataUnit? dataUnit,
+    bool includeWorkoutDetails = true,
   }) async {
     // Ask for device ID only once
     _deviceId ??= Platform.isAndroid
@@ -1291,7 +1294,8 @@ class Health {
     if (dataType == HealthDataType.BODY_MASS_INDEX && Platform.isAndroid) {
       return _computeAndroidBMI(startTime, endTime, recordingMethodsToFilter);
     }
-    return await _dataQuery(startTime, endTime, dataType, recordingMethodsToFilter, dataUnit: dataUnit);
+    return await _dataQuery(startTime, endTime, dataType, recordingMethodsToFilter,
+        dataUnit: dataUnit, includeWorkoutDetails: includeWorkoutDetails);
   }
 
   /// Prepares an interval query, i.e. checks if the types are available, etc.
@@ -1347,6 +1351,7 @@ class Health {
     HealthDataType dataType,
     List<RecordingMethod> recordingMethodsToFilter, {
     HealthDataUnit? dataUnit,
+    bool includeWorkoutDetails = true,
   }) async {
     String? unit = dataUnit?.name ?? dataTypeToUnit[dataType]?.name;
     final args = <String, dynamic>{
@@ -1355,6 +1360,9 @@ class Health {
       'startTime': startTime.millisecondsSinceEpoch,
       'endTime': endTime.millisecondsSinceEpoch,
       'recordingMethodsToFilter': recordingMethodsToFilter.map((e) => e.toInt()).toList(),
+      // Android only: skip per-session distance/calories enrichment reads for
+      // WORKOUT queries (cheap sessions-only listing). Ignored on iOS.
+      'includeWorkoutDetails': includeWorkoutDetails,
     };
     final fetchedDataPoints = await _channel.invokeMethod('getData', args);
 

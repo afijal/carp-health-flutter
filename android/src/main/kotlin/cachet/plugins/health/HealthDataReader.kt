@@ -49,6 +49,11 @@ class HealthDataReader(
         val endTime = Instant.ofEpochMilli(call.argument<Long>("endTime")!!)
         val healthConnectData = mutableListOf<Map<String, Any?>>()
         val recordingMethodsToFilter = call.argument<List<Int>>("recordingMethodsToFilter")!!
+        // When false, workout reads skip the per-session distance/calories
+        // enrichment queries — a cheap "list sessions only" mode that costs
+        // ~1 API call regardless of session count (vs 2 extra per session),
+        // which matters because Health Connect rate-limits API calls.
+        val includeWorkoutDetails = call.argument<Boolean>("includeWorkoutDetails") ?: true
 
         Log.i(
             "FLUTTER_HEALTH",
@@ -107,7 +112,13 @@ class HealthDataReader(
 
                     // Handle special cases
                     when (dataType) {
-                        WORKOUT -> handleWorkoutData(records, recordingMethodsToFilter, healthConnectData)
+                        WORKOUT -> handleWorkoutData(
+                            records,
+                            recordingMethodsToFilter,
+                            healthConnectData,
+                            grantedPermissions,
+                            includeDetails = includeWorkoutDetails,
+                        )
                         SLEEP_SESSION, SLEEP_ASLEEP, SLEEP_AWAKE, SLEEP_AWAKE_IN_BED, 
                         SLEEP_LIGHT, SLEEP_DEEP, SLEEP_REM, SLEEP_OUT_OF_BED, SLEEP_UNKNOWN -> 
                             handleSleepData(records, recordingMethodsToFilter, dataType, healthConnectData)
@@ -131,7 +142,37 @@ class HealthDataReader(
                     "Unable to return $dataType due to the following exception:"
                 )
                 Log.e("FLUTTER_HEALTH::ERROR", Log.getStackTraceString(e))
-                result.success(emptyList<Map<String, Any?>>()) // Return empty list instead of null
+                // Propagate a typed error instead of an empty success: callers
+                // must be able to tell "Health Connect has no data" apart from
+                // "the read blew up" (rate limiting, revoked permission). An
+                // empty success here made truncated reads look like the user
+                // had deleted all their Health data.
+                Handler(context.mainLooper).run {
+                    result.error(errorCodeFor(e), e.message, null)
+                }
+            }
+        }
+    }
+
+    companion object {
+        const val ERROR_RATE_LIMITED = "RATE_LIMITED"
+        const val ERROR_PERMISSION_DENIED = "PERMISSION_DENIED"
+        const val ERROR_READ = "READ_ERROR"
+
+        /**
+         * Classifies a Health Connect read failure so Flutter can react
+         * (back off and resume on rate limits, re-prompt on revoked
+         * permissions) instead of treating every failure the same way.
+         * The message check runs first because Health Connect wraps quota
+         * errors in varying exception classes.
+         */
+        fun errorCodeFor(e: Exception): String {
+            val message = e.message ?: ""
+            return when {
+                message.contains("rate limit", ignoreCase = true) ||
+                    message.contains("quota", ignoreCase = true) -> ERROR_RATE_LIMITED
+                e is SecurityException -> ERROR_PERMISSION_DENIED
+                else -> ERROR_READ
             }
         }
     }
@@ -205,7 +246,12 @@ class HealthDataReader(
                     when (dataType) {
                         HealthConstants.WORKOUT -> {
                             val tempData = mutableListOf<Map<String, Any?>>()
-                            handleWorkoutData(listOf(matchingRecord), emptyList(), tempData)
+                            handleWorkoutData(
+                                listOf(matchingRecord),
+                                emptyList(),
+                                tempData,
+                                healthConnectClient.permissionController.getGrantedPermissions(),
+                            )
                             healthPoint = if (tempData.isNotEmpty()) tempData[0] else mapOf()
                         }
                         HealthConstants.SLEEP_SESSION,
@@ -581,7 +627,9 @@ class HealthDataReader(
     private suspend fun handleWorkoutData(
         records: List<Record>,
         recordingMethodsToFilter: List<Int> = emptyList(),
-        healthConnectData: MutableList<Map<String, Any?>>
+        healthConnectData: MutableList<Map<String, Any?>>,
+        grantedPermissions: Set<String>,
+        includeDetails: Boolean = true,
     ) {
         val filteredRecords = if (recordingMethodsToFilter.isEmpty()) {
             records
@@ -592,52 +640,50 @@ class HealthDataReader(
             )
         }
 
+        // The enrichment reads below cost 2 extra Health Connect API calls per
+        // session, which counts against the read quota. They are skipped for
+        // types whose read permission is missing (a revoked Steps/Distance
+        // grant used to throw SecurityException and abort the whole read) and
+        // when the caller asked for a cheap sessions-only listing.
+        // Steps are intentionally not read at all: no consumer of this fork
+        // uses totalSteps and it was the most expensive of the three (an
+        // all-day continuous stream).
+        val canReadDistance = includeDetails &&
+            grantedPermissions.contains(HealthPermission.getReadPermission(DistanceRecord::class))
+        val canReadCalories = includeDetails &&
+            grantedPermissions.contains(HealthPermission.getReadPermission(TotalCaloriesBurnedRecord::class))
+
         for (rec in filteredRecords) {
             val record = rec as ExerciseSessionRecord
-            
-            // Get distance data
-            val distanceRequest = healthConnectClient.readRecords(
-                ReadRecordsRequest(
-                    recordType = DistanceRecord::class,
-                    timeRangeFilter = TimeRangeFilter.between(
-                        record.startTime,
-                        record.endTime,
+
+            var totalDistance: Double? = null
+            if (canReadDistance) {
+                val distanceRequest = healthConnectClient.readRecords(
+                    ReadRecordsRequest(
+                        recordType = DistanceRecord::class,
+                        timeRangeFilter = TimeRangeFilter.between(
+                            record.startTime,
+                            record.endTime,
+                        ),
                     ),
-                ),
-            )
-            var totalDistance = 0.0
-            for (distanceRec in distanceRequest.records) {
-                totalDistance += distanceRec.distance.inMeters
+                )
+                val distance = distanceRequest.records.sumOf { it.distance.inMeters }
+                totalDistance = if (distance == 0.0) null else distance
             }
 
-            // Get energy burned data
-            val energyBurnedRequest = healthConnectClient.readRecords(
-                ReadRecordsRequest(
-                    recordType = TotalCaloriesBurnedRecord::class,
-                    timeRangeFilter = TimeRangeFilter.between(
-                        record.startTime,
-                        record.endTime,
+            var totalEnergyBurned: Double? = null
+            if (canReadCalories) {
+                val energyBurnedRequest = healthConnectClient.readRecords(
+                    ReadRecordsRequest(
+                        recordType = TotalCaloriesBurnedRecord::class,
+                        timeRangeFilter = TimeRangeFilter.between(
+                            record.startTime,
+                            record.endTime,
+                        ),
                     ),
-                ),
-            )
-            var totalEnergyBurned = 0.0
-            for (energyBurnedRec in energyBurnedRequest.records) {
-                totalEnergyBurned += energyBurnedRec.energy.inKilocalories
-            }
-
-            // Get steps data
-            val stepRequest = healthConnectClient.readRecords(
-                ReadRecordsRequest(
-                    recordType = StepsRecord::class,
-                    timeRangeFilter = TimeRangeFilter.between(
-                        record.startTime,
-                        record.endTime
-                    ),
-                ),
-            )
-            var totalSteps = 0.0
-            for (stepRec in stepRequest.records) {
-                totalSteps += stepRec.count
+                )
+                val energy = energyBurnedRequest.records.sumOf { it.energy.inKilocalories }
+                totalEnergyBurned = if (energy == 0.0) null else energy
             }
 
             // Add final datapoint
@@ -649,11 +695,11 @@ class HealthDataReader(
                                 .filterValues { it == record.exerciseType }
                                 .keys
                                 .firstOrNull() ?: "OTHER"),
-                    "totalDistance" to if (totalDistance == 0.0) null else totalDistance,
+                    "totalDistance" to totalDistance,
                     "totalDistanceUnit" to "METER",
-                    "totalEnergyBurned" to if (totalEnergyBurned == 0.0) null else totalEnergyBurned,
+                    "totalEnergyBurned" to totalEnergyBurned,
                     "totalEnergyBurnedUnit" to "KILOCALORIE",
-                    "totalSteps" to if (totalSteps == 0.0) null else totalSteps,
+                    "totalSteps" to null,
                     "totalStepsUnit" to "COUNT",
                     "unit" to "MINUTES",
                     "date_from" to record.startTime.toEpochMilli(),
